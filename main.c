@@ -64,8 +64,10 @@ FILE * CreationFichier(FILE *file,char nom[20]){
     strcat(nom,".dat");
     printf("%s",nom);
     file=fopen(nom,"a");
-	fclose(file);
-	file=fopen(nom,"r+");
+    if(file != NULL){
+        fclose(file);
+    }
+    file=fopen(nom,"r+");
     return file;
 
 
