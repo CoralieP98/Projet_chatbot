@@ -8,6 +8,7 @@ FILE * CreationFichier(FILE *file,const char *nom);
 void init(FILE *fichier,FILE*hisinfoUsr,FILE *histoire,FILE *conv);
 void ecrireFichier(FILE *fichier,utilisateur user); // il sera peut-être nécessaire d'ajouter des structures dans les arguments d'entrée
 void afficherFichier(FILE *fichier,FILE *histoire,FILE *conv,FILE*hisinfoUsr);
+void menu1(FILE *histoire,FILE *conv,FILE*hisinfoUsr); // prototype à affiner
 
 int main(void){
     FILE*histoire=NULL;
@@ -16,11 +17,47 @@ int main(void){
     histoire=CreationFichier(histoire,"histoire");
     conv=CreationFichier(conv,"conv");
     hisinfoUsr=CreationFichier(hisinfoUsr,"histInfoUsr");
+    menu1(histoire,conv,hisinfoUsr);
+    
+    //afficherFichier(hisinfoUsr,histoire,conv,hisinfoUsr); //debug use only 
 
 
-    init(hisinfoUsr,hisinfoUsr,histoire,conv);
-    afficherFichier(hisinfoUsr,histoire,conv,hisinfoUsr);
+}
 
+void menu1(FILE *histoire,FILE *conv,FILE*hisinfoUsr){
+    {
+	char choix;
+	
+		printf("Entrez dans le mode admin............: A\n");
+		printf("Lançer le jeu.....: L\n");
+		printf("Quitter................................: Q\n");
+		printf(" votre choix: ");
+
+		scanf(" %c",&choix);
+		
+		switch(choix)
+		{
+			case 'a':
+			case 'A': 
+				admin();
+				break;
+				
+			case 'l':
+			case 'L':
+				init(hisinfoUsr,hisinfoUsr,histoire,conv);
+				break;
+				
+			case 'q':
+			case 'Q':
+				printf("sortie du menu\n");
+				break;
+				
+			default :
+				printf("Commande inconnue [%c]\n",choix);
+				break;
+		}
+		printf("\n\n");
+}
 
 }
 
@@ -31,7 +68,9 @@ void init(FILE *fichier,FILE*hisinfoUsr,FILE *histoire,FILE *conv){
     user.personnage.alignement=0;
     user.personnage.fin=0;
     user.personnage.histIndex=0;
-    user.personnage.asset[0]=0;user.personnage.asset[1]=0;user.personnage.asset[2]=0;
+    for(int i=0;i<NbMaxAssets;i++){
+        user.personnage.asset[i]=0;
+    }
     for(int i=0;i<nbMaxEtape;i++){
         user.personnage.hist[i]=0;
     }
@@ -39,6 +78,13 @@ void init(FILE *fichier,FILE*hisinfoUsr,FILE *histoire,FILE *conv){
 }
 
 void admin(void){
+    char promptedPassword[20];
+    printf("Entrez le mot de passe : ");
+    scanf(" %s",promptedPassword);
+    if(strcmp(password,promptedPassword)==0){
+        printf("Bienvenue Admin !");
+    }
+    else{printf("mot de passe incorrect");}
 
 }
 

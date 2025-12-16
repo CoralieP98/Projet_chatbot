@@ -1,11 +1,11 @@
 #define nbMaxEtape 10
-
-
+#define NbMaxAssets 3
+#define password "password"
 
 typedef struct 
 {
     int alignement; //méchant, gentil, neutre
-    int asset[3];
+    int asset[NbMaxAssets];
     int fin; // 0 si il n'est pas à l'avant dernière étape
     int hist[nbMaxEtape]; // historique des étapes enregistrées
     int histIndex; //numéro de l'étape en cours
