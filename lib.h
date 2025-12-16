@@ -1,9 +1,13 @@
+#define nbMaxEtape 10
+
+
+
 typedef struct 
 {
     int alignement; //méchant, gentil, neutre
-    char asset[3][10];
+    int asset[3];
     int fin; // 0 si il n'est pas à l'avant dernière étape
-    int hist[100]; // historique des étapes enregistrées
+    int hist[nbMaxEtape]; // historique des étapes enregistrées
     int histIndex; //numéro de l'étape en cours
 }player;
 

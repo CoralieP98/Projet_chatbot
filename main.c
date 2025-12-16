@@ -4,7 +4,7 @@
 #include "lib.h"
 
 void admin(void);
-FILE * CreationFichier(FILE *file,char nom[20]);
+FILE * CreationFichier(FILE *file,const char *nom);
 void init(FILE *fichier,FILE*hisinfoUsr,FILE *histoire,FILE *conv);
 void ecrireFichier(FILE *fichier,utilisateur user); // il sera peut-être nécessaire d'ajouter des structures dans les arguments d'entrée
 void afficherFichier(FILE *fichier,FILE *histoire,FILE *conv,FILE*hisinfoUsr);
@@ -14,8 +14,8 @@ int main(void){
     FILE*conv=NULL;
     FILE*hisinfoUsr=NULL;
     histoire=CreationFichier(histoire,"histoire");
-    //conv=CreationFichier(conv,"conv");
-    //hisinfoUsr=CreationFichier(hisinfoUsr,"histInfoUsr");
+    conv=CreationFichier(conv,"conv");
+    hisinfoUsr=CreationFichier(hisinfoUsr,"histInfoUsr");
 
 
     init(hisinfoUsr,hisinfoUsr,histoire,conv);
@@ -28,6 +28,13 @@ void init(FILE *fichier,FILE*hisinfoUsr,FILE *histoire,FILE *conv){
     utilisateur user;
     printf("Saisissez votre pseudo (20 caractères max):");
     scanf(" %s",user.nom);
+    user.personnage.alignement=0;
+    user.personnage.fin=0;
+    user.personnage.histIndex=0;
+    user.personnage.asset[0]=0;user.personnage.asset[1]=0;user.personnage.asset[2]=0;
+    for(int i=0;i<nbMaxEtape;i++){
+        user.personnage.hist[i]=0;
+    }
     ecrireFichier(hisinfoUsr,user);
 }
 
@@ -43,9 +50,9 @@ void afficherFichier(FILE *fichier,FILE *histoire,FILE *conv,FILE*hisinfoUsr){
 	while(fread(&user,sizeof(utilisateur),1,fichier)!=0){
         printf("nom utilisateur : %s\n",user.nom);
         printf("alignement : %d\n",user.personnage.alignement);
-        printf("assets : %s, %s, %s\n",user.personnage.asset[0],user.personnage.asset[1],user.personnage.asset[2]);
+        printf("assets : %d, %d, %d\n",user.personnage.asset[0],user.personnage.asset[1],user.personnage.asset[2]);
         printf("étapes parcourues : \n");
-        for(int i=0;i<100;i++){
+        for(int i=0;i<nbMaxEtape;i++){
             printf("%d\n",user.personnage.hist[i]);
         }
         printf("étape en cours : %d\n",user.personnage.histIndex);
@@ -59,10 +66,12 @@ void ecrireFichier(FILE *fichier,utilisateur user){
     fwrite(&user,sizeof(utilisateur),1,fichier);
 }
 
-FILE * CreationFichier(FILE *file,char nom[20]){
+FILE * CreationFichier(FILE *file,const char *nom){
     
-    strcat(nom,".dat");
-    printf("%s",nom);
+    char nomComplet[30];
+
+    strcpy(nomComplet, nom);
+    strcat(nomComplet, ".dat");
     file=fopen(nom,"a");
 	fclose(file);
 	file=fopen(nom,"r+");
