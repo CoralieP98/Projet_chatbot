@@ -1,0 +1,17 @@
+# Compiled binaries
+main
+main_test
+lib
+
+# Object files
+*.o
+*.obj
+
+# Data files (if they are generated)
+*.dat
+*.bin
+
+# Temporary files
+*~
+*.swp
+*.swo
