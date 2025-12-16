@@ -5,10 +5,24 @@
 
 
 int main(void){
-
+    FILE*histoire=NULL;
+    FILE*conv=NULL;
+    FILE*hisinfoUsr=NULL;
 
 }
 
-void CreationFichier(void){
+void CreationFichier(FILE *histoire,FILE *conv,FILE*hisinfoUsr){
 
+    histoire=fopen("database.bin","a");
+	fclose(histoire);
+	histoire=fopen("database.bin","r+");
+
+    conv=fopen("database.bin","a");
+	fclose(conv);
+	conv=fopen("database.bin","r+");
+
+    hisinfoUsr=fopen("database.bin","a");
+	fclose(hisinfoUsr);
+	hisinfoUsr=fopen("database.bin","r+");
+    
 }
