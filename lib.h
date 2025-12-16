@@ -1,17 +1,19 @@
 typedef struct 
 {
+    int alignement; //méchant, gentil, neutre
+    char asset[3][10];
+    int fin; // 0 si il n'est pas à l'avant dernière étape
+    int hist[100]; // historique des étapes enregistrées
+    int histIndex; //numéro de l'étape en cours
+}player;
+
+typedef struct 
+{
     char nom[20];
     player personnage;
 }utilisateur;
 
-typedef struct 
-{
-    int alignement; //méchant, gentil, neutre
-    char asset[3];
-    int fin; // 0 si il n'est pas à l'avant dernière étape
-    int hist; // historique des étapes enregistrées
-    int histIndex; //numéro de l'étape en cours
-}player;
+
 
 typedef struct 
 {
