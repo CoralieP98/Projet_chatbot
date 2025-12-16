@@ -9,6 +9,8 @@ int main(void){
     FILE*conv=NULL;
     FILE*hisinfoUsr=NULL;
 
+printf("coucou c'est un test!")
+
 }
 
 void CreationFichier(FILE *histoire,FILE *conv,FILE*hisinfoUsr){
