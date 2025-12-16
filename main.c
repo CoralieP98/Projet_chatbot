@@ -60,10 +60,12 @@ void ecrireFichier(FILE *fichier,utilisateur user){
 }
 
 FILE * CreationFichier(FILE *file, const char *nom){
-    char filename[25];  // Buffer to hold the filename with extension (20 + 4 for ".dat" + 1 for null terminator)
+    char filename[25];  // Buffer for filename + ".dat" extension + null terminator
     
-    strcpy(filename, nom);      // Copy the input name to the local buffer
-    strcat(filename, ".dat");   // Concatenate ".dat" to the buffer
+    // Safely copy the input name, leaving room for ".dat" extension
+    strncpy(filename, nom, 20);     // Copy at most 20 characters
+    filename[20] = '\0';             // Ensure null-termination
+    strcat(filename, ".dat");        // Concatenate ".dat" to the buffer
     printf("%s", filename);
     file = fopen(filename, "a");
     fclose(file);
