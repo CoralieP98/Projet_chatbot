@@ -4,7 +4,7 @@
 #include "lib.h"
 
 void admin(void);
-FILE * CreationFichier(FILE *file,char nom[20]);
+FILE * CreationFichier(FILE *file, const char *nom);
 void init(FILE *fichier,FILE*hisinfoUsr,FILE *histoire,FILE *conv);
 void ecrireFichier(FILE *fichier,utilisateur user); // il sera peut-être nécessaire d'ajouter des structures dans les arguments d'entrée
 void afficherFichier(FILE *fichier,FILE *histoire,FILE *conv,FILE*hisinfoUsr);
@@ -59,15 +59,14 @@ void ecrireFichier(FILE *fichier,utilisateur user){
     fwrite(&user,sizeof(utilisateur),1,fichier);
 }
 
-FILE * CreationFichier(FILE *file,char nom[20]){
+FILE * CreationFichier(FILE *file, const char *nom){
+    char filename[25];  // Buffer to hold the filename with extension (20 + 4 for ".dat" + 1 for null terminator)
     
-    strcat(nom,".dat");
-    printf("%s",nom);
-    file=fopen(nom,"a");
-	fclose(file);
-	file=fopen(nom,"r+");
+    strcpy(filename, nom);      // Copy the input name to the local buffer
+    strcat(filename, ".dat");   // Concatenate ".dat" to the buffer
+    printf("%s", filename);
+    file = fopen(filename, "a");
+    fclose(file);
+    file = fopen(filename, "r+");
     return file;
-
-
-    
 }
