@@ -3,7 +3,7 @@
 #include <string.h>
 #include "lib.h"
 
-void admin(void);
+void admin(FILE*hisinfoUsr,FILE *histoire,FILE *conv);
 FILE * CreationFichier(FILE *file,const char *nom);
 void init(FILE *fichier,FILE*hisinfoUsr,FILE *histoire,FILE *conv);
 void ecrireFichier(FILE *fichier,utilisateur user); // il sera peut-être nécessaire d'ajouter des structures dans les arguments d'entrée
@@ -39,7 +39,7 @@ void menu1(FILE *histoire,FILE *conv,FILE*hisinfoUsr){
 		{
 			case 'a':
 			case 'A': 
-				admin();
+				admin(histoire,conv,hisinfoUsr);
 				break;
 				
 			case 'l':
@@ -77,12 +77,44 @@ void init(FILE *fichier,FILE*hisinfoUsr,FILE *histoire,FILE *conv){
     ecrireFichier(hisinfoUsr,user);
 }
 
-void admin(void){
+void admin(FILE*hisinfoUsr,FILE *histoire,FILE *conv){
     char promptedPassword[20];
     printf("Entrez le mot de passe : ");
     scanf(" %s",promptedPassword);
     if(strcmp(password,promptedPassword)==0){
-        printf("Bienvenue Admin !");
+        printf("Bienvenue Admin !\n\n");
+        char choix;
+	
+		do
+        {
+        printf("Afficher les joueurs enregistrés............: A\n");
+		
+		printf("Quitter................................: Q\n");
+		printf(" votre choix: ");
+
+		scanf(" %c",&choix);
+		
+		switch(choix)
+		{
+			case 'a':
+			case 'A': 
+				afficherFichier(hisinfoUsr,hisinfoUsr,conv,hisinfoUsr);
+                break;
+
+            case 'q':
+			case 'Q':
+				printf("sortie du mode admin\n\n");
+                menu1(histoire,conv,hisinfoUsr);
+				break;
+				
+			default :
+				printf("Commande inconnue [%c]\n",choix);
+				break;
+		}
+		printf("\n\n");
+        } while (choix != 'q');
+        
+
     }
     else{printf("mot de passe incorrect");}
 
