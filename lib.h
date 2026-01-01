@@ -1,3 +1,4 @@
+
 #define nbMaxEtape 10
 #define NbMaxAssets 3
 #define password "password"
@@ -19,19 +20,19 @@ typedef struct
 
 typedef struct
 {
-    char description[1000];
-    int id;        // numéro de l'étape
-    int droite;    // numéro de l'étape vers laquelle rediriger l'utilisteur si il va à droite
-    int gauche;    // numéro de l'étape vers laquelle rediriger l'utilisteur si il va à gauche
-    int toutDroit; // numéro de l'étape vers laquelle rediriger l'utilisteur si il va tout droit
-    int combattre; // 0 si il fuit 1 pour le rediriger cers l'etape combat
-} etape;
-
-typedef struct
-{
     int PV;
     char nom[20];
 } PNJ;
+
+typedef struct
+{
+    char description[1000];
+    int id;          // numéro de l'étape
+    int option1;    // numéro de l'étape vers laquelle rediriger l'utilisteur si il choisis l'option 1
+    int option2;    // numéro de l'étape vers laquelle rediriger l'utilisteur si il choisis l'option 2
+    int option3;    // numéro de l'étape vers laquelle rediriger l'utilisteur si il choisis l'option 3
+    int combattre; // 0 si il fuit 1 pour le rediriger cers l'etape combat
+} etape;
 
 FILE *CreationFichier(FILE *file, const char *nom)
 {
@@ -40,19 +41,19 @@ FILE *CreationFichier(FILE *file, const char *nom)
 
     strcpy(nomComplet, nom);
     strcat(nomComplet, ".dat");
-    file = fopen(nom, "a");
+    file = fopen(nomComplet, "a");
     fclose(file);
-    file = fopen(nom, "r+");
+    file = fopen(nomComplet, "r+");
     return file;
 }
 
 void afficherFichier(FILE *fichier, FILE *histoire, FILE *conv, FILE *hisinfoUsr)
 {
-    if (fichier == hisinfoUsr)
-    {
+    
         utilisateur user;
         fseek(fichier, 0, SEEK_SET);
-        // on va lire des CLIENT du fichier un par un jusqua la fin du fichier
+        //clearerr(hisinfoUsr);
+        // on va lire des utilisateurs du fichier un par un jusqu'à la fin du fichier
         while (fread(&user, sizeof(utilisateur), 1, fichier) != 0)
         {
             printf("nom utilisateur : %s\n", user.nom);
@@ -65,11 +66,12 @@ void afficherFichier(FILE *fichier, FILE *histoire, FILE *conv, FILE *hisinfoUsr
             }
             printf("étape en cours : %d\n", user.personnage.histIndex);
         }
-    }
+    
 }
 
 void ecrireFichier(FILE *fichier, utilisateur user)
 {
     fseek(fichier, 0, SEEK_END);
-    fwrite(&user, sizeof(utilisateur), 1, fichier);
+    fwrite(&user,sizeof(utilisateur),1, fichier);
+    
 }
