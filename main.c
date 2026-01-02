@@ -16,6 +16,8 @@ void afficherFichierEtape(FILE *histoire);
 void etapeRunning(utilisateur user, FILE *conv, FILE *histoire);
 etape parcourirHistoire(int id,FILE *histoire);
 int traitementReponse(char reponse[50]);
+void archiveConv(utilisateur user, FILE *conv, char text[lenMaxPrompt]);
+void afficherConv(FILE *conv);
 
 int main(void)
 {
@@ -89,6 +91,7 @@ void init(FILE *hisinfoUsr, FILE *histoire, FILE *conv)
     strcpy(init.userName,user.nom);
     init.index=0;
     ecrireFichier(hisinfoUsr, user,init,histoire,conv,hisinfoUsr);
+    ecrireFichier(conv,user,init,histoire,conv,hisinfoUsr);
     etapeRunning(user,conv,histoire);
     
 }
@@ -108,6 +111,7 @@ void admin(FILE *histoire, FILE *conv, FILE *hisinfoUsr)
         {
             printf("Afficher les joueurs enregistrés............: A\n");
             printf("Modifier l'histoire.........................: H\n");
+            printf("Afficher le fichier conv....................: T\n");
             printf("Quitter.....................................: Q\n");
             printf(" votre choix: ");
 
@@ -127,6 +131,10 @@ void admin(FILE *histoire, FILE *conv, FILE *hisinfoUsr)
             case 'Q':
                 printf("sortie du mode admin\n\n");
                 menu1(histoire, conv, hisinfoUsr);
+                break;
+            case 't':
+            case 'T':
+                afficherConv(conv);
                 break;
 
             default:
@@ -241,6 +249,7 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire){
     int IdEtapeActuelle = user.personnage.histIndex;
     char reponse[50]="";
     etapeActuelle=parcourirHistoire(IdEtapeActuelle, histoire);
+    archiveConv(user,conv,etapeActuelle.description);
     printf("%s",etapeActuelle.description);
      getchar();// vide le buffer pour éviter que fgets pante
     fgets(reponse, sizeof(reponse), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
@@ -253,19 +262,23 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire){
         decision=traitementReponse(reponse);
     }   
     //log etape passé
-    
+    archiveConv(user,conv,reponse);
     //log conv
+
     if(decision==1){
         user.personnage.histIndex=etapeActuelle.option1;
-        etapeRunning(user,conv,histoire);
+        //etapeRunning(user,conv,histoire);
+        return;
     }
     else if(decision==2){
         user.personnage.histIndex=etapeActuelle.option2;
         etapeRunning(user,conv,histoire);
+        return;
     }
     if(decision==3){
         user.personnage.histIndex=etapeActuelle.option3;
         etapeRunning(user,conv,histoire);
+        return;
     }
 }
 
@@ -301,4 +314,38 @@ int traitementReponse(char reponse[50]){
         }
     }
     return 0; //erreur 
+}
+
+
+void archiveConv(utilisateur user, FILE *conv, char text[lenMaxPrompt]){
+    fseek(conv, 0, SEEK_SET);
+    history archive;
+    int index=0;
+    while(fread(&archive, sizeof(history), 1, conv)!=0){
+        if(strcmp(user.nom,archive.userName)==0){
+            printf("%s",archive.userName);
+            break;
+        }
+    }
+    fseek(conv,-sizeof(history),SEEK_CUR);
+    index = archive.index + 1;
+    //if(index < 0) index = 0;
+    //if(index >= 2*nbMaxEtape) index = 2*nbMaxEtape - 1;
+    archive.index=index;
+    strncpy(archive.conv[index], text, lenMaxPrompt-1);
+    archive.conv[index][lenMaxPrompt - 1] = '\0';
+    fwrite(&archive,sizeof(history),1, conv);
+}
+
+void afficherConv(FILE *conv){
+
+    history stock;
+    fseek(conv, 0, SEEK_SET);
+    while(fread(&stock, sizeof(history), 1, conv)!=0){
+        printf("nom : %s\n",stock.userName);
+        printf("index : %d\n",stock.index);
+        for(int i=0; i<2*nbMaxEtape;i++){
+            printf("%s\n",stock.conv[i]);
+        }
+}
 }

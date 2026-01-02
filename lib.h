@@ -95,7 +95,7 @@ void ecrireFichier(FILE *fichier, utilisateur user,history init, FILE *histoire,
 
             }
          }
-         if(trouve=0){
+         if(trouve==0){
             fseek(fichier, 0, SEEK_END);
             fwrite(&init,sizeof(history),1, fichier);
          }
