@@ -13,6 +13,8 @@ void histoirefct(FILE *histoire);
 void CreationEtape(FILE *histoire);
 int FindIndex(FILE *histoire);
 void afficherFichierEtape(FILE *histoire);
+void etapeRunning(utilisateur user, FILE *conv, FILE *histoire);
+etape parcourirHistoire(int id,FILE *histoire);
 
 int main(void)
 {
@@ -26,7 +28,7 @@ int main(void)
     fclose(hisinfoUsr);
     fclose(histoire);
     fclose(conv);
-    // afficherFichier(hisinfoUsr,histoire,conv,hisinfoUsr); //debug use only
+    return 0;
 }
 
 void menu1(FILE *histoire, FILE *conv, FILE *hisinfoUsr)
@@ -51,7 +53,6 @@ void menu1(FILE *histoire, FILE *conv, FILE *hisinfoUsr)
         case 'l':
         case 'L':
             init(hisinfoUsr, histoire, conv);
-            menu1(histoire, conv, hisinfoUsr);
             break;
 
         case 'q':
@@ -74,7 +75,7 @@ void init(FILE *hisinfoUsr, FILE *histoire, FILE *conv)
     scanf(" %s", user.nom);
     user.personnage.alignement = 0;
     user.personnage.fin = 0;
-    user.personnage.histIndex = 0;
+    user.personnage.histIndex = 1;
     for (int i = 0; i < NbMaxAssets; i++)
     {
         user.personnage.asset[i] = 0;
@@ -84,7 +85,8 @@ void init(FILE *hisinfoUsr, FILE *histoire, FILE *conv)
         user.personnage.hist[i] = 0;
     }
     ecrireFichier(hisinfoUsr, user);
-    printf("Tout va bien");
+    etapeRunning(user,conv,histoire);
+    
 }
 
 void admin(FILE *histoire, FILE *conv, FILE *hisinfoUsr)
@@ -223,5 +225,31 @@ void afficherFichierEtape(FILE *histoire){
         printf("option 3 : %d\n",etape0.option3);
 
 }
-        
+    
+}
+
+
+
+
+void etapeRunning(utilisateur user, FILE *conv, FILE *histoire){
+    etape etapeActuelle;
+    int IdEtapeActuelle = user.personnage.histIndex;
+    etapeActuelle=parcourirHistoire(IdEtapeActuelle, histoire);
+    printf("%s",etapeActuelle.description);
+    
+
+}
+
+etape parcourirHistoire(int id,FILE *histoire){
+     etape etape0;
+    fseek(histoire, 0, SEEK_SET);
+     while(fread(&etape0, sizeof(etape), 1, histoire)!=0){
+    
+       if(etape0.id==id){
+            break;
+       }
+
+    }
+    return etape0;
+
 }

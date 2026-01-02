@@ -5,6 +5,12 @@
 
 typedef struct
 {
+    char userName[20];
+    char conv[2*nbMaxEtape];
+}history;
+
+typedef struct
+{
     int alignement; // méchant, gentil, neutre
     int asset[NbMaxAssets];
     int fin;              // 0 si il n'est pas à l'avant dernière étape
@@ -16,6 +22,7 @@ typedef struct
 {
     char nom[20];
     player personnage;
+    char answer[100];
 } utilisateur;
 
 typedef struct
@@ -52,7 +59,6 @@ void afficherFichier(FILE *fichier, FILE *histoire, FILE *conv, FILE *hisinfoUsr
     
         utilisateur user;
         fseek(fichier, 0, SEEK_SET);
-        //clearerr(hisinfoUsr);
         // on va lire des utilisateurs du fichier un par un jusqu'à la fin du fichier
         while (fread(&user, sizeof(utilisateur), 1, fichier) != 0)
         {
@@ -71,6 +77,8 @@ void afficherFichier(FILE *fichier, FILE *histoire, FILE *conv, FILE *hisinfoUsr
 
 void ecrireFichier(FILE *fichier, utilisateur user)
 {
+
+    
     fseek(fichier, 0, SEEK_END);
     fwrite(&user,sizeof(utilisateur),1, fichier);
     
