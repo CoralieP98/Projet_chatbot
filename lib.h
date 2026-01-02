@@ -2,11 +2,13 @@
 #define nbMaxEtape 10
 #define NbMaxAssets 3
 #define password "password"
+#define lenMaxPrompt 1000
 
 typedef struct
 {
     char userName[20];
-    char conv[2*nbMaxEtape];
+    int index;
+    char conv[2*nbMaxEtape][lenMaxPrompt];
 }history;
 
 typedef struct
@@ -33,7 +35,7 @@ typedef struct
 
 typedef struct
 {
-    char description[1000];
+    char description[lenMaxPrompt];
     int id;          // numéro de l'étape
     int option1;    // numéro de l'étape vers laquelle rediriger l'utilisteur si il choisis l'option 1
     int option2;    // numéro de l'étape vers laquelle rediriger l'utilisteur si il choisis l'option 2
@@ -75,11 +77,29 @@ void afficherFichier(FILE *fichier, FILE *histoire, FILE *conv, FILE *hisinfoUsr
     
 }
 
-void ecrireFichier(FILE *fichier, utilisateur user)
+void ecrireFichier(FILE *fichier, utilisateur user,history init, FILE *histoire, FILE *conv, FILE *hisinfoUsr)
 {
+    history parcours;
+    if(fichier==hisinfoUsr){
+        fseek(fichier, 0, SEEK_END);
+        fwrite(&user,sizeof(utilisateur),1, fichier);
+    }
+    else if(fichier==conv){
+        int trouve=0;
+        fseek(fichier, 0, SEEK_SET);
+         while (fread(&parcours, sizeof(history), 1, fichier) != 0){
+            if(strcmp(parcours.userName, init.userName) == 0){
+                fseek(conv,-sizeof(history),SEEK_CUR);
+                fwrite(&init,sizeof(history),1, fichier);
+                trouve=1;
 
+            }
+         }
+         if(trouve=0){
+            fseek(fichier, 0, SEEK_END);
+            fwrite(&init,sizeof(history),1, fichier);
+         }
+    }
     
-    fseek(fichier, 0, SEEK_END);
-    fwrite(&user,sizeof(utilisateur),1, fichier);
     
 }

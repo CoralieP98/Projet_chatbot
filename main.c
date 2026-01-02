@@ -6,7 +6,7 @@
 void admin(FILE *histoire, FILE *conv, FILE *hisinfoUsr);
 FILE *CreationFichier(FILE *file, const char *nom);
 void init( FILE *hisinfoUsr, FILE *histoire, FILE *conv);
-void ecrireFichier(FILE *fichier, utilisateur user); // il sera peut-être nécessaire d'ajouter des structures dans les arguments d'entrée
+void ecrireFichier(FILE *fichier, utilisateur user,history init, FILE *histoire, FILE *conv, FILE *hisinfoUsr); // il sera peut-être nécessaire d'ajouter des structures dans les arguments d'entrée
 void afficherFichier(FILE *fichier, FILE *histoire, FILE *conv, FILE *hisinfoUsr);
 void menu1(FILE *histoire, FILE *conv, FILE *hisinfoUsr); // prototype à affiner
 void histoirefct(FILE *histoire);
@@ -15,6 +15,7 @@ int FindIndex(FILE *histoire);
 void afficherFichierEtape(FILE *histoire);
 void etapeRunning(utilisateur user, FILE *conv, FILE *histoire);
 etape parcourirHistoire(int id,FILE *histoire);
+int traitementReponse(char reponse[50]);
 
 int main(void)
 {
@@ -71,6 +72,7 @@ void menu1(FILE *histoire, FILE *conv, FILE *hisinfoUsr)
 void init(FILE *hisinfoUsr, FILE *histoire, FILE *conv)
 {
     utilisateur user;
+    history init;
     printf("Saisissez votre pseudo (20 caractères max):");
     scanf(" %s", user.nom);
     user.personnage.alignement = 0;
@@ -84,7 +86,9 @@ void init(FILE *hisinfoUsr, FILE *histoire, FILE *conv)
     {
         user.personnage.hist[i] = 0;
     }
-    ecrireFichier(hisinfoUsr, user);
+    strcpy(init.userName,user.nom);
+    init.index=0;
+    ecrireFichier(hisinfoUsr, user,init,histoire,conv,hisinfoUsr);
     etapeRunning(user,conv,histoire);
     
 }
@@ -182,7 +186,7 @@ void CreationEtape(FILE *histoire){
     printf("Saisissez la description de l'histoire (1000 caractères max):");
     getchar();// vide le buffer pour éviter que fgets pante
     fgets(promptedDescription, sizeof(promptedDescription), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
-    promptedDescription[strcspn(promptedDescription, "\n")] = '\0'; // Supprimer le '\n' ajouté par fgets 
+    //promptedDescription[strcspn(promptedDescription, "\n")] = '\0'; // Supprimer le '\n' ajouté par fgets 
 
     printf("Saisissez le renvoi 1 :\n");
     scanf("%d",&etape0.option1);
@@ -233,11 +237,36 @@ void afficherFichierEtape(FILE *histoire){
 
 void etapeRunning(utilisateur user, FILE *conv, FILE *histoire){
     etape etapeActuelle;
+    history archive;
     int IdEtapeActuelle = user.personnage.histIndex;
+    char reponse[50]="";
     etapeActuelle=parcourirHistoire(IdEtapeActuelle, histoire);
     printf("%s",etapeActuelle.description);
+     getchar();// vide le buffer pour éviter que fgets pante
+    fgets(reponse, sizeof(reponse), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
+    reponse[strcspn(reponse, "\n")] = '\0'; // Supprimer le '\n' ajouté par fgets 
+    int decision=traitementReponse(reponse); 
+    while(decision==0){printf("!! Je ne comprends pas la décision prise, articule le sang !!\n ");
+        strcpy(reponse,"");
+        //getchar();// vide le buffer pour éviter que fgets pante
+        fgets(reponse, sizeof(reponse), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
+        decision=traitementReponse(reponse);
+    }   
+    //log etape passé
     
-
+    //log conv
+    if(decision==1){
+        user.personnage.histIndex=etapeActuelle.option1;
+        etapeRunning(user,conv,histoire);
+    }
+    else if(decision==2){
+        user.personnage.histIndex=etapeActuelle.option2;
+        etapeRunning(user,conv,histoire);
+    }
+    if(decision==3){
+        user.personnage.histIndex=etapeActuelle.option3;
+        etapeRunning(user,conv,histoire);
+    }
 }
 
 etape parcourirHistoire(int id,FILE *histoire){
@@ -252,4 +281,24 @@ etape parcourirHistoire(int id,FILE *histoire){
     }
     return etape0;
 
+}
+
+int traitementReponse(char reponse[50]){
+    for (int i = 0; reponse[i] != '\0' && i < 50; i++) {
+        if (reponse[i] == ' '||reponse[i] == '.') {
+            if (i >= 6) {
+                if (strncmp(&reponse[i - 6], "droite", 6) == 0) {
+                    return 1;
+                } else if (strncmp(&reponse[i - 6], "gauche", 6) == 0) {
+                    return 2;
+                }
+            }
+            if (i >= 10) {
+                if (strncmp(&reponse[i - 10], "tout droit", 10) == 0) {
+                    return 3;
+                }
+            }
+        }
+    }
+    return 0; //erreur 
 }
