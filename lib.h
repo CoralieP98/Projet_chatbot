@@ -18,6 +18,7 @@ typedef struct
     int fin;              // 0 si il n'est pas à l'avant dernière étape
     int hist[nbMaxEtape]; // historique des étapes enregistrées
     int histIndex;        // numéro de l'étape en cours
+    int PV;
 } player;
 
 typedef struct
@@ -41,6 +42,7 @@ typedef struct
     int option2;    // numéro de l'étape vers laquelle rediriger l'utilisteur si il choisis l'option 2
     int option3;    // numéro de l'étape vers laquelle rediriger l'utilisteur si il choisis l'option 3
     int combattre; // 0 si il fuit 1 pour le rediriger cers l'etape combat
+    char combatPNJ[20];
 } etape;
 
 FILE *CreationFichier(FILE *file, const char *nom)
@@ -67,6 +69,7 @@ void afficherFichier(FILE *fichier, FILE *histoire, FILE *conv, FILE *hisinfoUsr
             printf("nom utilisateur : %s\n", user.nom);
             printf("alignement : %d\n", user.personnage.alignement);
             printf("assets : %d, %d, %d\n", user.personnage.asset[0], user.personnage.asset[1], user.personnage.asset[2]);
+            printf("PV : %d",user.personnage.PV);
             printf("étapes parcourues : \n");
             for (int i = 0; i < nbMaxEtape; i++)
             {

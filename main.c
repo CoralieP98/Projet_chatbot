@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "lib.h"
+#include <time.h>
 
 void admin(FILE *histoire, FILE *conv, FILE *hisinfoUsr);
 FILE *CreationFichier(FILE *file, const char *nom);
@@ -13,12 +14,12 @@ void histoirefct(FILE *histoire);
 void CreationEtape(FILE *histoire);
 int FindIndex(FILE *histoire);
 void afficherFichierEtape(FILE *histoire);
-void etapeRunning(utilisateur user, FILE *conv, FILE *histoire);
+void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr);
 etape parcourirHistoire(int id,FILE *histoire);
 int traitementReponse(char reponse[50]);
 void archiveConv(utilisateur user, FILE *conv, char text[lenMaxPrompt]);
 void afficherConv(FILE *conv);
-
+void combat(int etapeId,char nomPNJ[20], FILE *hisinfoUsr,FILE *conv,FILE *histoire, utilisateur user);
 int main(void)
 {
     FILE *histoire = NULL;
@@ -80,6 +81,7 @@ void init(FILE *hisinfoUsr, FILE *histoire, FILE *conv)
     user.personnage.alignement = 0;
     user.personnage.fin = 0;
     user.personnage.histIndex = 1;
+    user.personnage.PV=100;
     for (int i = 0; i < NbMaxAssets; i++)
     {
         user.personnage.asset[i] = 0;
@@ -90,9 +92,19 @@ void init(FILE *hisinfoUsr, FILE *histoire, FILE *conv)
     }
     strcpy(init.userName,user.nom);
     init.index=0;
+    user.personnage.PV=100;
+    /*char vide[lenMaxPrompt];
+    for (int i = 0; i < lenMaxPrompt; i++)
+        vide[i] = ' ';
+
+    vide[lenMaxPrompt] = '\0'; // terminateur de chaîne
+    for(int i=0;i<2*nbMaxEtape;i++){
+
+        strcpy(init.conv[i],vide);
+    }*/
     ecrireFichier(hisinfoUsr, user,init,histoire,conv,hisinfoUsr);
     ecrireFichier(conv,user,init,histoire,conv,hisinfoUsr);
-    etapeRunning(user,conv,histoire);
+    etapeRunning(user,conv,histoire,hisinfoUsr);
     
 }
 
@@ -202,7 +214,8 @@ void CreationEtape(FILE *histoire){
     scanf("%d",&etape0.option2);
     printf("Saisissez le renvoi 3 :\n");
     scanf("%d",&etape0.option3);
-
+    printf("Saisissez le nom du PNJ a combattre (0 si pas d'etape de combat à suire) :\n");
+    scanf("%s",etape0.combatPNJ);
     int index =FindIndex(histoire); 
     fseek(histoire,0,SEEK_END);
     
@@ -243,7 +256,7 @@ void afficherFichierEtape(FILE *histoire){
 
 
 
-void etapeRunning(utilisateur user, FILE *conv, FILE *histoire){
+void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr){
     etape etapeActuelle;
     history archive;
     int IdEtapeActuelle = user.personnage.histIndex;
@@ -251,7 +264,7 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire){
     etapeActuelle=parcourirHistoire(IdEtapeActuelle, histoire);
     archiveConv(user,conv,etapeActuelle.description);
     printf("%s",etapeActuelle.description);
-     getchar();// vide le buffer pour éviter que fgets pante
+    getchar();// vide le buffer pour éviter que fgets pante
     fgets(reponse, sizeof(reponse), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
     reponse[strcspn(reponse, "\n")] = '\0'; // Supprimer le '\n' ajouté par fgets 
     int decision=traitementReponse(reponse); 
@@ -272,14 +285,18 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire){
     }
     else if(decision==2){
         user.personnage.histIndex=etapeActuelle.option2;
-        etapeRunning(user,conv,histoire);
+        etapeRunning(user,conv,histoire,hisinfoUsr);
         return;
     }
-    if(decision==3){
+    else if(decision==3){
         user.personnage.histIndex=etapeActuelle.option3;
-        etapeRunning(user,conv,histoire);
+        etapeRunning(user,conv,histoire,hisinfoUsr);
         return;
     }
+    else if(decision==4){
+        combat(IdEtapeActuelle+1,etapeActuelle.combatPNJ,hisinfoUsr,conv,histoire, user);
+    }
+
 }
 
 etape parcourirHistoire(int id,FILE *histoire){
@@ -305,10 +322,16 @@ int traitementReponse(char reponse[50]){
                 } else if (strncmp(&reponse[i - 6], "gauche", 6) == 0) {
                     return 2;
                 }
+                
             }
             if (i >= 10) {
                 if (strncmp(&reponse[i - 10], "tout droit", 10) == 0) {
                     return 3;
+                }
+            }
+            if (i >= 9) {
+                if (strncmp(&reponse[i - 9], "combattre", 9) == 0) {
+                    return 4;
                 }
             }
         }
@@ -323,7 +346,7 @@ void archiveConv(utilisateur user, FILE *conv, char text[lenMaxPrompt]){
     int index=0;
     while(fread(&archive, sizeof(history), 1, conv)!=0){
         if(strcmp(user.nom,archive.userName)==0){
-            printf("%s",archive.userName);
+            //printf("%s",archive.userName);
             break;
         }
     }
@@ -348,4 +371,59 @@ void afficherConv(FILE *conv){
             printf("%s\n",stock.conv[i]);
         }
 }
+}
+void combat(int etapeId,char nomPNJ[20], FILE *hisinfoUsr,FILE *conv,FILE *histoire, utilisateur user){
+    int PvPlayer;
+    utilisateur userSto;
+    srand(time(NULL));  // initialisation de l'aléatoire
+    char reponse[50];
+        fseek(hisinfoUsr, 0, SEEK_SET);
+        // on va lire des utilisateurs du fichier un par un jusqu'à la fin du fichier
+        while (fread(&userSto, sizeof(utilisateur), 1, hisinfoUsr) != 0)
+        {
+            if(strcmp(user.nom,userSto.nom)==0){
+                PvPlayer=userSto.personnage.PV;
+                printf("trouve /n");
+            }
+        }
+        int pvPNJ=100;
+        
+            printf("%s vous attaque ! que voulez-vous faire fuir ou combattre ?\n",nomPNJ);
+            getchar();// vide le buffer pour éviter que fgets pante
+            fgets(reponse, sizeof(reponse), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
+            if(traitementReponse(reponse)==4){
+                printf("pvPlayer %d, pvPNJ %d\n",PvPlayer,pvPNJ);
+                while(PvPlayer>0&& pvPNJ>0){
+                    int degats= (rand() % 10) + 1;
+                    PvPlayer=PvPlayer-degats;
+                    printf("%s vous a infligé %d de dégats, votre PV et de %d que voulez-vous faire ? combattre ou fuir\n",nomPNJ,degats,PvPlayer);
+                    getchar();// vide le buffer pour éviter que fgets pante
+                    fgets(reponse, sizeof(reponse), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
+                    if(traitementReponse(reponse)==4){
+                        int degatsPNJ= (rand() % 10) + 1;
+                        pvPNJ=pvPNJ-degatsPNJ;
+                    printf("Vous avez infligé %d de dégat à %s sont PV est de %d\n",degatsPNJ,nomPNJ,pvPNJ);
+                    }
+
+                    else{
+                        printf("Tapette Va !\n");
+                        user.personnage.histIndex=etapeId;
+                        etapeRunning(user,conv,histoire,hisinfoUsr);
+                    }
+                }
+                if(PvPlayer<=0){
+                    printf("Vous êtes mort !! perdu !!\n");
+                }
+                if(pvPNJ<=0){
+                    printf("Vous remportez le duel !!\n");
+                    user.personnage.histIndex=etapeId;
+                    etapeRunning(user,conv,histoire,hisinfoUsr);
+                }
+            }
+            else{
+                printf("Tapette Va !\n");
+                user.personnage.histIndex=etapeId;
+                etapeRunning(user,conv,histoire,hisinfoUsr);
+            }
+        
 }
