@@ -102,6 +102,10 @@ void init(FILE *hisinfoUsr, FILE *histoire, FILE *conv)
 
         strcpy(init.conv[i],vide);
     }*/
+   printf("\n\n\n-------------------------------------------------------------------\n");
+   printf("Instructions de jeu :\n");
+   printf("Chacune de vos réponses au ChatBot devra se terminer par un point.\n");
+   printf("-------------------------------------------------------------------\n\n\n");
     ecrireFichier(hisinfoUsr, user,init,histoire,conv,hisinfoUsr);
     ecrireFichier(conv,user,init,histoire,conv,hisinfoUsr);
     etapeRunning(user,conv,histoire,hisinfoUsr);
@@ -270,17 +274,17 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr
     int decision=traitementReponse(reponse); 
     while(decision==0){printf("!! Je ne comprends pas la décision prise, articule le sang !!\n ");
         strcpy(reponse,"");
-        //getchar();// vide le buffer pour éviter que fgets pante
+        //getchar();// vide le buffer pour éviter que fgets plante
         fgets(reponse, sizeof(reponse), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
         decision=traitementReponse(reponse);
     }   
     //log etape passé
     archiveConv(user,conv,reponse);
     //log conv
-
     if(decision==1){
         user.personnage.histIndex=etapeActuelle.option1;
         //etapeRunning(user,conv,histoire);
+        //menu1(histoire,conv,hisinfoUsr);
         return;
     }
     else if(decision==2){
@@ -294,7 +298,7 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr
         return;
     }
     else if(decision==4){
-        combat(IdEtapeActuelle+1,etapeActuelle.combatPNJ,hisinfoUsr,conv,histoire, user);
+        combat(etapeActuelle.option3,etapeActuelle.combatPNJ,hisinfoUsr,conv,histoire, user);
     }
 
 }
@@ -383,7 +387,7 @@ void combat(int etapeId,char nomPNJ[20], FILE *hisinfoUsr,FILE *conv,FILE *histo
         {
             if(strcmp(user.nom,userSto.nom)==0){
                 PvPlayer=userSto.personnage.PV;
-                printf("trouve /n");
+                //printf("trouve /n"); /for debug
             }
         }
         int pvPNJ=100;
@@ -391,37 +395,50 @@ void combat(int etapeId,char nomPNJ[20], FILE *hisinfoUsr,FILE *conv,FILE *histo
             printf("%s vous attaque ! que voulez-vous faire fuir ou combattre ?\n",nomPNJ);
             getchar();// vide le buffer pour éviter que fgets pante
             fgets(reponse, sizeof(reponse), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
+            archiveConv(user,conv,nomPNJ);
+            archiveConv(user,conv,"vous attaque ! que voulez-vous faire fuir ou combattre ?\n");
+            archiveConv(user,conv,reponse);
             if(traitementReponse(reponse)==4){
                 printf("pvPlayer %d, pvPNJ %d\n",PvPlayer,pvPNJ);
                 while(PvPlayer>0&& pvPNJ>0){
                     int degats= (rand() % 10) + 1;
                     PvPlayer=PvPlayer-degats;
                     printf("%s vous a infligé %d de dégats, votre PV et de %d que voulez-vous faire ? combattre ou fuir\n",nomPNJ,degats,PvPlayer);
+                    char chaine[50];
+                    snprintf(chaine,sizeof(chaine),"%s vous a infligé %d de dégats, votre PV et de %d que voulez-vous faire ? combattre ou fuir\n",nomPNJ,degats,PvPlayer);
+                    archiveConv(user,conv,chaine);
                     getchar();// vide le buffer pour éviter que fgets pante
                     fgets(reponse, sizeof(reponse), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
                     if(traitementReponse(reponse)==4){
                         int degatsPNJ= (rand() % 10) + 1;
                         pvPNJ=pvPNJ-degatsPNJ;
                     printf("Vous avez infligé %d de dégat à %s sont PV est de %d\n",degatsPNJ,nomPNJ,pvPNJ);
+                    char chaine2[50];
+                    snprintf(chaine2,sizeof(chaine2),"Vous avez infligé %d de dégat à %s sont PV est de %d\n",degatsPNJ,nomPNJ,pvPNJ);
+                    archiveConv(user,conv,chaine2);
                     }
 
                     else{
                         printf("Tapette Va !\n");
+                        archiveConv(user,conv,"Tapette Va !\n");
                         user.personnage.histIndex=etapeId;
                         etapeRunning(user,conv,histoire,hisinfoUsr);
                     }
                 }
                 if(PvPlayer<=0){
                     printf("Vous êtes mort !! perdu !!\n");
+                    archiveConv(user,conv,"Vous êtes mort !! perdu !!\n");
                 }
                 if(pvPNJ<=0){
                     printf("Vous remportez le duel !!\n");
                     user.personnage.histIndex=etapeId;
                     etapeRunning(user,conv,histoire,hisinfoUsr);
+                    archiveConv(user,conv,"Vous remportez le duel !!\n");
                 }
             }
             else{
                 printf("Tapette Va !\n");
+                archiveConv(user,conv,"Tapette Va !\n");
                 user.personnage.histIndex=etapeId;
                 etapeRunning(user,conv,histoire,hisinfoUsr);
             }

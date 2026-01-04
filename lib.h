@@ -69,7 +69,7 @@ void afficherFichier(FILE *fichier, FILE *histoire, FILE *conv, FILE *hisinfoUsr
             printf("nom utilisateur : %s\n", user.nom);
             printf("alignement : %d\n", user.personnage.alignement);
             printf("assets : %d, %d, %d\n", user.personnage.asset[0], user.personnage.asset[1], user.personnage.asset[2]);
-            printf("PV : %d",user.personnage.PV);
+            printf("PV : %d\n",user.personnage.PV);
             printf("étapes parcourues : \n");
             for (int i = 0; i < nbMaxEtape; i++)
             {
