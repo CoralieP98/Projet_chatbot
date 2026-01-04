@@ -265,6 +265,13 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr
     history archive;
     int IdEtapeActuelle = user.personnage.histIndex;
     char reponse[50]="";
+    if(user.personnage.histIndex==999){
+        printf("fin du jeu !!\n");
+        fclose(hisinfoUsr);
+        fclose(histoire);
+        fclose(conv);
+        exit(0);
+    }
     etapeActuelle=parcourirHistoire(IdEtapeActuelle, histoire);
     archiveConv(user,conv,etapeActuelle.description);
     printf("%s",etapeActuelle.description);
@@ -283,7 +290,8 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr
     //log conv
     if(decision==1){
         user.personnage.histIndex=etapeActuelle.option1;
-        //etapeRunning(user,conv,histoire);
+        //user.personnage.histIndex=999; for debug use only
+        etapeRunning(user,conv,histoire,hisinfoUsr);
         //menu1(histoire,conv,hisinfoUsr);
         return;
     }
@@ -399,7 +407,7 @@ void combat(int etapeId,char nomPNJ[20], FILE *hisinfoUsr,FILE *conv,FILE *histo
             archiveConv(user,conv,"vous attaque ! que voulez-vous faire fuir ou combattre ?\n");
             archiveConv(user,conv,reponse);
             if(traitementReponse(reponse)==4){
-                printf("pvPlayer %d, pvPNJ %d\n",PvPlayer,pvPNJ);
+                //printf("pvPlayer %d, pvPNJ %d\n",PvPlayer,pvPNJ); for debug use only
                 while(PvPlayer>0&& pvPNJ>0){
                     int degats= (rand() % 10) + 1;
                     PvPlayer=PvPlayer-degats;
@@ -428,6 +436,10 @@ void combat(int etapeId,char nomPNJ[20], FILE *hisinfoUsr,FILE *conv,FILE *histo
                 if(PvPlayer<=0){
                     printf("Vous êtes mort !! perdu !!\n");
                     archiveConv(user,conv,"Vous êtes mort !! perdu !!\n");
+                    fclose(hisinfoUsr);
+                    fclose(histoire);
+                    fclose(conv);
+                    exit(0);
                 }
                 if(pvPNJ<=0){
                     printf("Vous remportez le duel !!\n");
