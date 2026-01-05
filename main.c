@@ -81,6 +81,8 @@ void init(FILE *hisinfoUsr, FILE *histoire, FILE *conv)
 
     printf("Saisissez votre pseudo (20 caracteres max):");
     scanf(" %s", user.nom);
+    printf("woah ah ouais t'avais pas mieux?");
+
 
     // Initialisation du joueur
     user.personnage.alignement = 0;
@@ -99,7 +101,7 @@ void init(FILE *hisinfoUsr, FILE *histoire, FILE *conv)
     strcpy(init.userName, user.nom);
     init.index = 0;
     for (int i = 0; i < 2 * nbMaxEtape; i++) {
-        init.conv[i][0] = '\0';  // chaque ligne = chaîne vide
+        init.conv[i][0] = '\0';
     }
 
     printf("\n\n\n-------------------------------------------------------------------\n");
@@ -107,13 +109,10 @@ void init(FILE *hisinfoUsr, FILE *histoire, FILE *conv)
     printf("Chacune de vos reponses au ChatBot devra se terminer par un point.\n");
     printf("-------------------------------------------------------------------\n\n\n");
 
-    // 1) Enregistrer le joueur dans histInfoUsr
     ecrireFichier(hisinfoUsr, user, init, histoire, conv, hisinfoUsr);
 
-    // 2) Enregistrer l'historique de conv pour ce user dans conv.dat
     ecrireFichier(conv, user, init, histoire, conv, hisinfoUsr);
 
-    // 3) Lancer l'histoire
     etapeRunning(user, conv, histoire, hisinfoUsr);
 }
 
@@ -222,41 +221,33 @@ void CreationEtape(FILE *histoire){
 
     // --- Description ---
     printf("Saisissez la description de l'histoire (1000 caracteres max):\n");
-    getchar(); // vide le buffer pour éviter que fgets plante
+    getchar();
     fgets(promptedDescription, sizeof(promptedDescription), stdin);
-    // Si tu veux, tu peux enlever le '\n' final :
     // promptedDescription[strcspn(promptedDescription, "\n")] = '\0';
     strcpy(etape0.description, promptedDescription);
 
-    // --- AutoNext ou étape avec choix ? ---
     printf("Est-ce une etape automatique (sans choix, juste narration) ? (0 = non, 1 = oui) : ");
     scanf("%d", &etape0.autoNext);
 
-    // --- Renvois d'étapes ---
-    // Même pour une étape auto, on a besoin au minimum de option1 (l'étape suivante)
     printf("Saisissez le renvoi 1 (id de l'etape suivante, 0 si aucun) :\n");
     scanf("%d", &etape0.option1);
 
     if (etape0.autoNext == 0) {
-        // Étape avec choix : on demande aussi option2 / option3
         printf("Saisissez le renvoi 2 (0 si aucun) :\n");
         scanf("%d", &etape0.option2);
 
         printf("Saisissez le renvoi 3 (0 si aucun) :\n");
         scanf("%d", &etape0.option3);
     } else {
-        // Étape automatique : par sécurité, pas d'autres renvois
         etape0.option2 = 0;
         etape0.option3 = 0;
     }
 
-    // --- PNJ de combat (si applicable) ---
     printf("Saisissez le nom du PNJ a combattre (\"0\" si pas d'etape de combat a suivre) :\n");
     scanf("%19s", etape0.combatPNJ);
 
     // Si ce n'est PAS une étape automatique, on demande les mots-clés et alignements
     if (etape0.autoNext == 0) {
-        // On vide le buffer avant les fgets
         getchar();
 
         // ---------- Option 1 ----------
@@ -300,7 +291,7 @@ void CreationEtape(FILE *histoire){
         printf("Alignement pour l'option 3 (ex: 1, 0, -1) : ");
         scanf("%d", &etape0.align3);
     } else {
-        // Étape automatique : pas de mots-clés, alignement = 0
+
         etape0.key1a[0] = '\0';
         etape0.key1b[0] = '\0';
         etape0.align1 = 0;
@@ -314,7 +305,6 @@ void CreationEtape(FILE *histoire){
         etape0.align3 = 0;
     }
 
-    // --- Écriture dans le fichier ---
     fseek(histoire, 0, SEEK_END);
     fwrite(&etape0, sizeof(etape), 1, histoire);
 }
@@ -348,7 +338,6 @@ void afficherFichierEtape(FILE *histoire){
         printf("combatPNJ   : %s\n", etape0.combatPNJ);
 
         if (etape0.autoNext == 0) {
-            // Étape avec choix : on affiche les mots-clés et l'alignement
             printf("--- Option 1 ---\n");
             printf("  key1a   : \"%s\"\n", etape0.key1a);
             printf("  key1b   : \"%s\"\n", etape0.key1b);
@@ -364,7 +353,6 @@ void afficherFichierEtape(FILE *histoire){
             printf("  key3b   : \"%s\"\n", etape0.key3b);
             printf("  align3  : %d\n", etape0.align3);
         } else {
-            // Étape narrative automatique
             printf("(Etape automatique : pas de mots-cles, pas de choix)\n");
         }
 
@@ -378,7 +366,6 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr
     etape etapeActuelle;
     int IdEtapeActuelle = user.personnage.histIndex;
 
-    // FIN DU JEU
     if (user.personnage.histIndex == 999) {
         utilisateur u;
         int align = user.personnage.alignement;
@@ -390,7 +377,6 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr
                 break;
             }
         }
-
         printf("\n========== FIN DU JEU ==========\n");
         printf("Votre alignement final est : %d\n", align);
 
@@ -412,7 +398,6 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr
     // Charger l'étape courante
     etapeActuelle = parcourirHistoire(IdEtapeActuelle, histoire);
 
-    // Log et affichage de la description
     archiveConv(user, conv, etapeActuelle.description);
     printf("%s\n", etapeActuelle.description);
 
@@ -461,10 +446,8 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr
         d = analyserReponseEtape(reponse, &etapeActuelle);
     }
 
-    // log conv
     archiveConv(user, conv, reponse);
 
-    // Alignement
     user.personnage.alignement += d.deltaAlign;
     sauvegarderUtilisateur(hisinfoUsr, user);
 
@@ -476,7 +459,6 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr
     } else if (d.option == 3) {
         user.personnage.histIndex = etapeActuelle.option3;
     } else if (d.option == 4) {
-        // choix de combat : option3 = étape après combat
         combat(etapeActuelle.option3, etapeActuelle.combatPNJ, hisinfoUsr, conv, histoire, user);
         return;
     }
@@ -486,7 +468,7 @@ void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr
 
 int contientMotCle(const char *reponse, const char *mot) {
     if (mot[0] == '\0')
-        return 0; // mot vide = ignoré
+        return 0;
 
     // Recherche simple, sensible à la casse
     return (strstr(reponse, mot) != NULL);
@@ -497,37 +479,33 @@ Decision analyserReponseEtape(const char *reponse, etape *e) {
     d.option = 0;
     d.deltaAlign = 0;
 
-    // Option 1
     if (contientMotCle(reponse, e->key1a) || contientMotCle(reponse, e->key1b)) {
         d.option = 1;
         d.deltaAlign = e->align1;
         return d;
     }
 
-    // Option 2
     if (contientMotCle(reponse, e->key2a) || contientMotCle(reponse, e->key2b)) {
         d.option = 2;
         d.deltaAlign = e->align2;
         return d;
     }
 
-    // Option 3
     if (contientMotCle(reponse, e->key3a) || contientMotCle(reponse, e->key3b)) {
         d.option = 3;
         d.deltaAlign = e->align3;
         return d;
     }
 
-    // Option combat globale si combatPNJ != "0"
     if (strstr(reponse, "combattre") != NULL &&
         strcmp(e->combatPNJ, "0") != 0 &&
         e->combatPNJ[0] != '\0') {
         d.option = 4;
-        d.deltaAlign = 0; // tu peux décider d'un effet d'alignement si tu veux
+        d.deltaAlign = 0;
         return d;
         }
 
-    return d; // incompris
+    return d; // gné?
 }
 
 void sauvegarderUtilisateur(FILE *hisinfoUsr, utilisateur user) {
@@ -536,7 +514,6 @@ void sauvegarderUtilisateur(FILE *hisinfoUsr, utilisateur user) {
 
     while (fread(&u, sizeof(utilisateur), 1, hisinfoUsr) != 0) {
         if (strcmp(u.nom, user.nom) == 0) {
-            // On est sur le bon utilisateur : revenir en arrière et réécrire
             fseek(hisinfoUsr, -(long)sizeof(utilisateur), SEEK_CUR);
             fwrite(&user, sizeof(utilisateur), 1, hisinfoUsr);
             fflush(hisinfoUsr);
@@ -544,7 +521,6 @@ void sauvegarderUtilisateur(FILE *hisinfoUsr, utilisateur user) {
         }
     }
 
-    // Si on ne le trouve pas, on peut l'ajouter à la fin (au cas où)
     fseek(hisinfoUsr, 0, SEEK_END);
     fwrite(&user, sizeof(utilisateur), 1, hisinfoUsr);
     fflush(hisinfoUsr);
@@ -563,7 +539,7 @@ etape parcourirHistoire(int id,FILE *histoire){
     return etape0;
 
 }
-
+//old one
 int traitementReponse(char reponse[50]){
     for (int i = 0; reponse[i] != '\0' && i < 50; i++) {
         if (reponse[i] == ' '||reponse[i] == '.') {
@@ -573,7 +549,7 @@ int traitementReponse(char reponse[50]){
                 } else if (strncmp(&reponse[i - 6], "gauche", 6) == 0) {
                     return 2;
                 }
-                
+
             }
             if (i >= 10) {
                 if (strncmp(&reponse[i - 10], "tout droit", 10) == 0) {
@@ -587,7 +563,7 @@ int traitementReponse(char reponse[50]){
             }
         }
     }
-    return 0; //erreur 
+    return 0; //erreur
 }
 
 void archiveConv(utilisateur user, FILE *conv, char text[lenMaxPrompt]){
