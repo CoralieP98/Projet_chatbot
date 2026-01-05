@@ -20,6 +20,9 @@ int traitementReponse(char reponse[50]);
 void archiveConv(utilisateur user, FILE *conv, char text[lenMaxPrompt]);
 void afficherConv(FILE *conv);
 void combat(int etapeId,char nomPNJ[20], FILE *hisinfoUsr,FILE *conv,FILE *histoire, utilisateur user);
+int contientMotCle(const char *reponse, const char *mot);
+Decision analyserReponseEtape(const char *reponse, etape *e);
+void sauvegarderUtilisateur(FILE *hisinfoUsr, utilisateur user);
 int main(void)
 {
     FILE *histoire = NULL;
@@ -71,45 +74,47 @@ void menu1(FILE *histoire, FILE *conv, FILE *hisinfoUsr)
         printf("\n\n");
     }
 }
-
 void init(FILE *hisinfoUsr, FILE *histoire, FILE *conv)
 {
     utilisateur user;
     history init;
-    printf("Saisissez votre pseudo (20 caractères max):");
+
+    printf("Saisissez votre pseudo (20 caracteres max):");
     scanf(" %s", user.nom);
+
+    // Initialisation du joueur
     user.personnage.alignement = 0;
     user.personnage.fin = 0;
     user.personnage.histIndex = 1;
-    user.personnage.PV=100;
-    for (int i = 0; i < NbMaxAssets; i++)
-    {
-        user.personnage.asset[i] = 0;
-    }
-    for (int i = 0; i < nbMaxEtape; i++)
-    {
+    user.personnage.PV = 100;
+
+    // for (int i = 0; i < NbMaxAssets; i++) {
+    //     user.personnage.asset[i] = 0;
+    // }
+    for (int i = 0; i < nbMaxEtape; i++) {
         user.personnage.hist[i] = 0;
     }
-    strcpy(init.userName,user.nom);
-    init.index=0;
-    user.personnage.PV=100;
-    /*char vide[lenMaxPrompt];
-    for (int i = 0; i < lenMaxPrompt; i++)
-        vide[i] = ' ';
 
-    vide[lenMaxPrompt] = '\0'; // terminateur de chaîne
-    for(int i=0;i<2*nbMaxEtape;i++){
+    // Initialisation de l'historique de conversation pour ce user
+    strcpy(init.userName, user.nom);
+    init.index = 0;
+    for (int i = 0; i < 2 * nbMaxEtape; i++) {
+        init.conv[i][0] = '\0';  // chaque ligne = chaîne vide
+    }
 
-        strcpy(init.conv[i],vide);
-    }*/
-   printf("\n\n\n-------------------------------------------------------------------\n");
-   printf("Instructions de jeu :\n");
-   printf("Chacune de vos réponses au ChatBot devra se terminer par un point.\n");
-   printf("-------------------------------------------------------------------\n\n\n");
-    ecrireFichier(hisinfoUsr, user,init,histoire,conv,hisinfoUsr);
-    ecrireFichier(conv,user,init,histoire,conv,hisinfoUsr);
-    etapeRunning(user,conv,histoire,hisinfoUsr);
-    
+    printf("\n\n\n-------------------------------------------------------------------\n");
+    printf("Instructions de jeu :\n");
+    printf("Chacune de vos reponses au ChatBot devra se terminer par un point.\n");
+    printf("-------------------------------------------------------------------\n\n\n");
+
+    // 1) Enregistrer le joueur dans histInfoUsr
+    ecrireFichier(hisinfoUsr, user, init, histoire, conv, hisinfoUsr);
+
+    // 2) Enregistrer l'historique de conv pour ce user dans conv.dat
+    ecrireFichier(conv, user, init, histoire, conv, hisinfoUsr);
+
+    // 3) Lancer l'histoire
+    etapeRunning(user, conv, histoire, hisinfoUsr);
 }
 
 void admin(FILE *histoire, FILE *conv, FILE *hisinfoUsr)
@@ -207,26 +212,111 @@ printf("***********************************************\n");
 void CreationEtape(FILE *histoire){
     char promptedDescription[1000];
     etape etape0;
-    printf("Saisissez la description de l'histoire (1000 caractères max):");
-    getchar();// vide le buffer pour éviter que fgets pante
-    fgets(promptedDescription, sizeof(promptedDescription), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
-    //promptedDescription[strcspn(promptedDescription, "\n")] = '\0'; // Supprimer le '\n' ajouté par fgets 
+    int index = FindIndex(histoire);
 
-    printf("Saisissez le renvoi 1 :\n");
-    scanf("%d",&etape0.option1);
-    printf("Saisissez le renvoi 2 :\n");
-    scanf("%d",&etape0.option2);
-    printf("Saisissez le renvoi 3 :\n");
-    scanf("%d",&etape0.option3);
-    printf("Saisissez le nom du PNJ a combattre (0 si pas d'etape de combat à suire) :\n");
-    scanf("%s",etape0.combatPNJ);
-    int index =FindIndex(histoire); 
-    fseek(histoire,0,SEEK_END);
-    
-    etape0.id=index+1;
-    strcpy(etape0.description,promptedDescription);
-    fwrite(&etape0,sizeof(etape),1,histoire);
-    
+    // On nettoie la structure
+    memset(&etape0, 0, sizeof(etape));
+
+    // ID de l'étape
+    etape0.id = index + 1;
+
+    // --- Description ---
+    printf("Saisissez la description de l'histoire (1000 caracteres max):\n");
+    getchar(); // vide le buffer pour éviter que fgets plante
+    fgets(promptedDescription, sizeof(promptedDescription), stdin);
+    // Si tu veux, tu peux enlever le '\n' final :
+    // promptedDescription[strcspn(promptedDescription, "\n")] = '\0';
+    strcpy(etape0.description, promptedDescription);
+
+    // --- AutoNext ou étape avec choix ? ---
+    printf("Est-ce une etape automatique (sans choix, juste narration) ? (0 = non, 1 = oui) : ");
+    scanf("%d", &etape0.autoNext);
+
+    // --- Renvois d'étapes ---
+    // Même pour une étape auto, on a besoin au minimum de option1 (l'étape suivante)
+    printf("Saisissez le renvoi 1 (id de l'etape suivante, 0 si aucun) :\n");
+    scanf("%d", &etape0.option1);
+
+    if (etape0.autoNext == 0) {
+        // Étape avec choix : on demande aussi option2 / option3
+        printf("Saisissez le renvoi 2 (0 si aucun) :\n");
+        scanf("%d", &etape0.option2);
+
+        printf("Saisissez le renvoi 3 (0 si aucun) :\n");
+        scanf("%d", &etape0.option3);
+    } else {
+        // Étape automatique : par sécurité, pas d'autres renvois
+        etape0.option2 = 0;
+        etape0.option3 = 0;
+    }
+
+    // --- PNJ de combat (si applicable) ---
+    printf("Saisissez le nom du PNJ a combattre (\"0\" si pas d'etape de combat a suivre) :\n");
+    scanf("%19s", etape0.combatPNJ);
+
+    // Si ce n'est PAS une étape automatique, on demande les mots-clés et alignements
+    if (etape0.autoNext == 0) {
+        // On vide le buffer avant les fgets
+        getchar();
+
+        // ---------- Option 1 ----------
+        printf("\n--- Configuration des mots-cles pour l'option 1 ---\n");
+        printf("Mot-cle 1 (laisser vide si inutile) : ");
+        fgets(etape0.key1a, sizeof(etape0.key1a), stdin);
+        etape0.key1a[strcspn(etape0.key1a, "\n")] = '\0';
+
+        printf("Mot-cle 2 (laisser vide si inutile) : ");
+        fgets(etape0.key1b, sizeof(etape0.key1b), stdin);
+        etape0.key1b[strcspn(etape0.key1b, "\n")] = '\0';
+
+        printf("Alignement pour l'option 1 (ex: 1, 0, -1) : ");
+        scanf("%d", &etape0.align1);
+        getchar(); // vider le buffer
+
+        // ---------- Option 2 ----------
+        printf("\n--- Configuration des mots-cles pour l'option 2 ---\n");
+        printf("Mot-cle 1 (laisser vide si inutile) : ");
+        fgets(etape0.key2a, sizeof(etape0.key2a), stdin);
+        etape0.key2a[strcspn(etape0.key2a, "\n")] = '\0';
+
+        printf("Mot-cle 2 (laisser vide si inutile) : ");
+        fgets(etape0.key2b, sizeof(etape0.key2b), stdin);
+        etape0.key2b[strcspn(etape0.key2b, "\n")] = '\0';
+
+        printf("Alignement pour l'option 2 (ex: 1, 0, -1) : ");
+        scanf("%d", &etape0.align2);
+        getchar(); // vider le buffer
+
+        // ---------- Option 3 ----------
+        printf("\n--- Configuration des mots-cles pour l'option 3 ---\n");
+        printf("Mot-cle 1 (laisser vide si inutile) : ");
+        fgets(etape0.key3a, sizeof(etape0.key3a), stdin);
+        etape0.key3a[strcspn(etape0.key3a, "\n")] = '\0';
+
+        printf("Mot-cle 2 (laisser vide si inutile) : ");
+        fgets(etape0.key3b, sizeof(etape0.key3b), stdin);
+        etape0.key3b[strcspn(etape0.key3b, "\n")] = '\0';
+
+        printf("Alignement pour l'option 3 (ex: 1, 0, -1) : ");
+        scanf("%d", &etape0.align3);
+    } else {
+        // Étape automatique : pas de mots-clés, alignement = 0
+        etape0.key1a[0] = '\0';
+        etape0.key1b[0] = '\0';
+        etape0.align1 = 0;
+
+        etape0.key2a[0] = '\0';
+        etape0.key2b[0] = '\0';
+        etape0.align2 = 0;
+
+        etape0.key3a[0] = '\0';
+        etape0.key3b[0] = '\0';
+        etape0.align3 = 0;
+    }
+
+    // --- Écriture dans le fichier ---
+    fseek(histoire, 0, SEEK_END);
+    fwrite(&etape0, sizeof(etape), 1, histoire);
 }
 
 int FindIndex(FILE *histoire){
@@ -245,70 +335,219 @@ int FindIndex(FILE *histoire){
 void afficherFichierEtape(FILE *histoire){
     fseek(histoire, 0, SEEK_SET);
     etape etape0;
-    while(fread(&etape0, sizeof(etape), 1, histoire)!=0){
-    
-        printf("id : %d\n",etape0.id);
-        printf("description : %s\n",etape0.description);
-        printf("option 1 : %d\n",etape0.option1);
-        printf("option 2 : %d\n",etape0.option2);
-        printf("option 3 : %d\n",etape0.option3);
 
-}
-    
-}
+    while (fread(&etape0, sizeof(etape), 1, histoire) != 0) {
 
+        printf("======================================\n");
+        printf("id          : %d\n", etape0.id);
+        printf("autoNext    : %d\n", etape0.autoNext);
+        printf("description : %s\n", etape0.description);
+        printf("option 1    : %d\n", etape0.option1);
+        printf("option 2    : %d\n", etape0.option2);
+        printf("option 3    : %d\n", etape0.option3);
+        printf("combatPNJ   : %s\n", etape0.combatPNJ);
+
+        if (etape0.autoNext == 0) {
+            // Étape avec choix : on affiche les mots-clés et l'alignement
+            printf("--- Option 1 ---\n");
+            printf("  key1a   : \"%s\"\n", etape0.key1a);
+            printf("  key1b   : \"%s\"\n", etape0.key1b);
+            printf("  align1  : %d\n", etape0.align1);
+
+            printf("--- Option 2 ---\n");
+            printf("  key2a   : \"%s\"\n", etape0.key2a);
+            printf("  key2b   : \"%s\"\n", etape0.key2b);
+            printf("  align2  : %d\n", etape0.align2);
+
+            printf("--- Option 3 ---\n");
+            printf("  key3a   : \"%s\"\n", etape0.key3a);
+            printf("  key3b   : \"%s\"\n", etape0.key3b);
+            printf("  align3  : %d\n", etape0.align3);
+        } else {
+            // Étape narrative automatique
+            printf("(Etape automatique : pas de mots-cles, pas de choix)\n");
+        }
+
+        printf("\n");
+    }
+}
 
 
 
 void etapeRunning(utilisateur user, FILE *conv, FILE *histoire, FILE *hisinfoUsr){
     etape etapeActuelle;
-    history archive;
     int IdEtapeActuelle = user.personnage.histIndex;
-    char reponse[50]="";
-    if(user.personnage.histIndex==999){
-        printf("fin du jeu !!\n");
+
+    // FIN DU JEU
+    if (user.personnage.histIndex == 999) {
+        utilisateur u;
+        int align = user.personnage.alignement;
+
+        fseek(hisinfoUsr, 0, SEEK_SET);
+        while (fread(&u, sizeof(utilisateur), 1, hisinfoUsr) != 0) {
+            if (strcmp(u.nom, user.nom) == 0) {
+                align = u.personnage.alignement;
+                break;
+            }
+        }
+
+        printf("\n========== FIN DU JEU ==========\n");
+        printf("Votre alignement final est : %d\n", align);
+
+        if (align < 0) {
+            printf("Bienvenue dans l'ordre du Pistou.\n Vous êtes un héros bon, juste, et profondément ignoré.\n Une statue est érigée...Elle est mal sculptés.");
+        } else if (align > 0) {
+            printf("Bienvenue dans l'ordre de la Farigoule.\n Vous êtes craint.et respecté.\n Et interdit de cuisine à vie.");
+        } else {
+            printf("Bienvenue dans l'ordre de l'Estragon.\n Vous existez c'est déjà pas mal :/");
+        }
+        printf("================================\n");
+
         fclose(hisinfoUsr);
         fclose(histoire);
         fclose(conv);
         exit(0);
     }
-    etapeActuelle=parcourirHistoire(IdEtapeActuelle, histoire);
-    archiveConv(user,conv,etapeActuelle.description);
-    printf("%s",etapeActuelle.description);
-    getchar();// vide le buffer pour éviter que fgets pante
-    fgets(reponse, sizeof(reponse), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
-    reponse[strcspn(reponse, "\n")] = '\0'; // Supprimer le '\n' ajouté par fgets 
-    int decision=traitementReponse(reponse); 
-    while(decision==0){printf("!! Je ne comprends pas la décision prise, articule le sang !!\n ");
-        strcpy(reponse,"");
-        //getchar();// vide le buffer pour éviter que fgets plante
-        fgets(reponse, sizeof(reponse), stdin); // on utilise fgets pour pouvoir saisir un texte avec des espaces
-        decision=traitementReponse(reponse);
-    }   
-    //log etape passé
-    archiveConv(user,conv,reponse);
-    //log conv
-    if(decision==1){
-        user.personnage.histIndex=etapeActuelle.option1;
-        //user.personnage.histIndex=999; for debug use only
-        etapeRunning(user,conv,histoire,hisinfoUsr);
-        //menu1(histoire,conv,hisinfoUsr);
-        return;
-    }
-    else if(decision==2){
-        user.personnage.histIndex=etapeActuelle.option2;
-        etapeRunning(user,conv,histoire,hisinfoUsr);
-        return;
-    }
-    else if(decision==3){
-        user.personnage.histIndex=etapeActuelle.option3;
-        etapeRunning(user,conv,histoire,hisinfoUsr);
-        return;
-    }
-    else if(decision==4){
-        combat(etapeActuelle.option3,etapeActuelle.combatPNJ,hisinfoUsr,conv,histoire, user);
+
+    // Charger l'étape courante
+    etapeActuelle = parcourirHistoire(IdEtapeActuelle, histoire);
+
+    // Log et affichage de la description
+    archiveConv(user, conv, etapeActuelle.description);
+    printf("%s\n", etapeActuelle.description);
+
+    // Étape automatique : on saute directement à option1
+    if (etapeActuelle.autoNext == 1) {
+        if (etapeActuelle.option1 > 0) {
+            user.personnage.histIndex = etapeActuelle.option1;
+            sauvegarderUtilisateur(hisinfoUsr, user);
+            etapeRunning(user, conv, histoire, hisinfoUsr);
+            return;
+        } else {
+            // Pas de prochaine étape définie -> on considère que c'est la fin
+            user.personnage.histIndex = 999;
+            etapeRunning(user, conv, histoire, hisinfoUsr);
+            return;
+        }
     }
 
+    // Étape avec choix
+    char reponse[50] = "";
+    getchar(); // vider le buffer pour éviter que fgets plante
+    fgets(reponse, sizeof(reponse), stdin);
+    reponse[strcspn(reponse, "\n")] = '\0';
+
+    // Commande spéciale pour revenir au menu
+    if (strcmp(reponse, "menu.") == 0) {
+        printf("Retour au menu principal...\n");
+        menu1(histoire, conv, hisinfoUsr);
+        return;
+    }
+
+    Decision d = analyserReponseEtape(reponse, &etapeActuelle);
+
+    while (d.option == 0) {
+        printf("!! Je ne comprends pas la décision prise, articule le sang !!\n ");
+        strcpy(reponse, "");
+        fgets(reponse, sizeof(reponse), stdin);
+        reponse[strcspn(reponse, "\n")] = '\0';
+
+        if (strcmp(reponse, "menu.") == 0) {
+            printf("Retour au menu principal...\n");
+            menu1(histoire, conv, hisinfoUsr);
+            return;
+        }
+
+        d = analyserReponseEtape(reponse, &etapeActuelle);
+    }
+
+    // log conv
+    archiveConv(user, conv, reponse);
+
+    // Alignement
+    user.personnage.alignement += d.deltaAlign;
+    sauvegarderUtilisateur(hisinfoUsr, user);
+
+    // Gestion des choix
+    if (d.option == 1) {
+        user.personnage.histIndex = etapeActuelle.option1;
+    } else if (d.option == 2) {
+        user.personnage.histIndex = etapeActuelle.option2;
+    } else if (d.option == 3) {
+        user.personnage.histIndex = etapeActuelle.option3;
+    } else if (d.option == 4) {
+        // choix de combat : option3 = étape après combat
+        combat(etapeActuelle.option3, etapeActuelle.combatPNJ, hisinfoUsr, conv, histoire, user);
+        return;
+    }
+
+    etapeRunning(user, conv, histoire, hisinfoUsr);
+}
+
+int contientMotCle(const char *reponse, const char *mot) {
+    if (mot[0] == '\0')
+        return 0; // mot vide = ignoré
+
+    // Recherche simple, sensible à la casse
+    return (strstr(reponse, mot) != NULL);
+}
+
+Decision analyserReponseEtape(const char *reponse, etape *e) {
+    Decision d;
+    d.option = 0;
+    d.deltaAlign = 0;
+
+    // Option 1
+    if (contientMotCle(reponse, e->key1a) || contientMotCle(reponse, e->key1b)) {
+        d.option = 1;
+        d.deltaAlign = e->align1;
+        return d;
+    }
+
+    // Option 2
+    if (contientMotCle(reponse, e->key2a) || contientMotCle(reponse, e->key2b)) {
+        d.option = 2;
+        d.deltaAlign = e->align2;
+        return d;
+    }
+
+    // Option 3
+    if (contientMotCle(reponse, e->key3a) || contientMotCle(reponse, e->key3b)) {
+        d.option = 3;
+        d.deltaAlign = e->align3;
+        return d;
+    }
+
+    // Option combat globale si combatPNJ != "0"
+    if (strstr(reponse, "combattre") != NULL &&
+        strcmp(e->combatPNJ, "0") != 0 &&
+        e->combatPNJ[0] != '\0') {
+        d.option = 4;
+        d.deltaAlign = 0; // tu peux décider d'un effet d'alignement si tu veux
+        return d;
+        }
+
+    return d; // incompris
+}
+
+void sauvegarderUtilisateur(FILE *hisinfoUsr, utilisateur user) {
+    utilisateur u;
+    fseek(hisinfoUsr, 0, SEEK_SET);
+
+    while (fread(&u, sizeof(utilisateur), 1, hisinfoUsr) != 0) {
+        if (strcmp(u.nom, user.nom) == 0) {
+            // On est sur le bon utilisateur : revenir en arrière et réécrire
+            fseek(hisinfoUsr, -(long)sizeof(utilisateur), SEEK_CUR);
+            fwrite(&user, sizeof(utilisateur), 1, hisinfoUsr);
+            fflush(hisinfoUsr);
+            return;
+        }
+    }
+
+    // Si on ne le trouve pas, on peut l'ajouter à la fin (au cas où)
+    fseek(hisinfoUsr, 0, SEEK_END);
+    fwrite(&user, sizeof(utilisateur), 1, hisinfoUsr);
+    fflush(hisinfoUsr);
 }
 
 etape parcourirHistoire(int id,FILE *histoire){
@@ -351,39 +590,64 @@ int traitementReponse(char reponse[50]){
     return 0; //erreur 
 }
 
-
 void archiveConv(utilisateur user, FILE *conv, char text[lenMaxPrompt]){
     fseek(conv, 0, SEEK_SET);
     history archive;
-    int index=0;
-    while(fread(&archive, sizeof(history), 1, conv)!=0){
-        if(strcmp(user.nom,archive.userName)==0){
-            //printf("%s",archive.userName);
+    int trouve = 0;
+
+    while (fread(&archive, sizeof(history), 1, conv) != 0) {
+        if (strcmp(user.nom, archive.userName) == 0) {
+            trouve = 1;
             break;
         }
     }
-    fseek(conv,-sizeof(history),SEEK_CUR);
-    index = archive.index + 1;
-    //if(index < 0) index = 0;
-    //if(index >= 2*nbMaxEtape) index = 2*nbMaxEtape - 1;
-    archive.index=index;
-    strncpy(archive.conv[index], text, lenMaxPrompt-1);
+
+    if (trouve) {
+        fseek(conv, -(long)sizeof(history), SEEK_CUR);
+    } else {
+        memset(&archive, 0, sizeof(history));
+        strncpy(archive.userName, user.nom, sizeof(archive.userName) - 1);
+        archive.userName[sizeof(archive.userName) - 1] = '\0';
+        archive.index = -1;
+    }
+
+    int index = archive.index + 1;
+    if (index >= 2 * nbMaxEtape) {
+        index = 2 * nbMaxEtape - 1;
+    }
+    archive.index = index;
+
+    strncpy(archive.conv[index], text, lenMaxPrompt - 1);
     archive.conv[index][lenMaxPrompt - 1] = '\0';
-    fwrite(&archive,sizeof(history),1, conv);
+
+    fwrite(&archive, sizeof(history), 1, conv);
+    fflush(conv);
+
 }
 
 void afficherConv(FILE *conv){
-
     history stock;
     fseek(conv, 0, SEEK_SET);
-    while(fread(&stock, sizeof(history), 1, conv)!=0){
-        printf("nom : %s\n",stock.userName);
-        printf("index : %d\n",stock.index);
-        for(int i=0; i<2*nbMaxEtape;i++){
-            printf("%s\n",stock.conv[i]);
+
+    printf("=== DEBUG CONV.DAT ===\n");
+    int n = 0;
+
+    while (fread(&stock, sizeof(history), 1, conv) != 0) {
+        printf("----- ENTREE %d -----\n", n++);
+        printf("userName : '%s'\n", stock.userName);
+        printf("index    : %d\n", stock.index);
+
+        for (int i = 0; i < 2 * nbMaxEtape; i++) {
+            printf("conv[%2d] : '%.40s'\n", i, stock.conv[i]);
         }
+        printf("\n");
+    }
+
+    if (n == 0) {
+        printf("(conv.dat est vide ou aucune entree lue)\n");
+    }
 }
-}
+
 void combat(int etapeId,char nomPNJ[20], FILE *hisinfoUsr,FILE *conv,FILE *histoire, utilisateur user){
     int PvPlayer;
     utilisateur userSto;
